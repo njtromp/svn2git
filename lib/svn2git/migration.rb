@@ -41,7 +41,7 @@ module Svn2Git
       options[:rootistrunk] = false
       options[:trunk] = 'trunk'
       options[:branches] = 'branches'
-      options[:tags] = 'tags'
+      options[:tags] = ['tags']
       options[:exclude] = []
       options[:revision] = nil
       options[:username] = nil
@@ -74,15 +74,18 @@ module Svn2Git
           options[:branches] = branches
         end
 
-        opts.on('--tags TAGS_PATH', 'Subpath to tags from repository URL (default: tags)') do |tags|
-          options[:tags] = tags
+        opts.on('--tags TAGS_PATH,TAGS_PATH', Array, 'Subpath(s) to tags from repository URL (default: tags)') do |tags|
+          options[:tags] = []
+          Array(tags).each do |tag|
+            options[:tags] << tag
+          end
         end
 
         opts.on('--rootistrunk', 'Use this if the root level of the repo is equivalent to the trunk and there are no tags or branches') do
           options[:rootistrunk] = true
           options[:trunk] = nil
           options[:branches] = nil
-          options[:tags] = nil
+          options[:tags] = []
         end
 
         opts.on('--notrunk', 'Do not import anything from trunk') do
@@ -94,7 +97,7 @@ module Svn2Git
         end
 
         opts.on('--notags', 'Do not try to import any tags') do
-          options[:tags] = nil
+          options[:tags] = []
         end
 
         opts.on('--no-minimize-url', 'Accept URLs as-is without attempting to connect to a higher level directory') do
@@ -170,7 +173,9 @@ module Svn2Git
           cmd += "--no-minimize-url "
         end
         cmd += "--trunk=#{trunk} " unless trunk.nil?
-        cmd += "--tags=#{tags} " unless tags.nil?
+        tags.each do |tag|
+          cmd += "--tags=#{tag} "
+        end
         cmd += "--branches=#{branches} " unless branches.nil?
 
         cmd += @url
@@ -188,7 +193,9 @@ module Svn2Git
         regex = []
         unless rootistrunk
           regex << "#{trunk}[/]" unless trunk.nil?
-          regex << "#{tags}[/][^/]+[/]" unless tags.nil?
+          tags.each do |tag|
+            regex << "#{tag}[/][^/]+[/]"
+          end
           regex << "#{branches}[/][^/]+[/]" unless branches.nil?
         end
         regex = '^(?:' + regex.join('|') + ')(?:' + exclude.join('|') + ')'
